@@ -1,42 +1,154 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+.app-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 16px;
+}
+
+.container {
+  width: 100%;
+  max-width: 800px;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  padding: 32px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.title {
+  color: #4361EE;
+  font-size: 2.5rem;
+  margin-bottom: 24px;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #555;
+  font-size: 1.2rem;
+  margin-bottom: 32px;
+}
+
+.btn {
+  background-color: #4361EE;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(67, 97, 238, 0.2);
+}
+
+.btn:hover {
+  background-color: #3a56e8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(67, 97, 238, 0.25);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background-color: #E63946;
+}
+
+.btn-secondary:hover {
+  background-color: #d62e3b;
+  box-shadow: 0 6px 8px rgba(230, 57, 70, 0.25);
+}
+
+.options-container {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 32px 0;
+  flex-wrap: wrap;
+}
+
+.score-board {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 32px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.player-score {
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.player-name {
+  font-weight: 600;
+  color: #4361EE;
+  margin-bottom: 8px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.score {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.result-message {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 24px 0;
+  min-height: 40px;
+}
+
+.win {
+  color: #38b000;
+}
+
+.lose {
+  color: #E63946;
+}
+
+.draw {
+  color: #4361EE;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.player-turn {
+  color: #4361EE;
+  font-weight: 600;
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 16px;
   }
-  to {
-    transform: rotate(360deg);
+  
+  .title {
+    font-size: 2rem;
   }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+  
+  .subtitle {
+    font-size: 1rem;
   }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+  
+  .btn {
+    padding: 10px 24px;
+    font-size: 1rem;
+  }
+  
+  .options-container {
+    gap: 8px;
+  }
 }
