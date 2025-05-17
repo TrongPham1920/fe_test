@@ -40,3 +40,11 @@
 .read-the-docs {
   color: #888;
 }
+
+.scoreboard {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px dashed #999;
+  background: #f8f8f8;
+  border-radius: 8px;
+}
