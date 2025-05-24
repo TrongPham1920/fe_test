@@ -136,9 +136,9 @@ function App() {
         onClick={() => {
           if (!c.isFaceUp && currentTurn === myId) handleFlipCard(i);
         }}
-        title={c.isFaceUp ? `${c.value}${c.suit}` : "Bài úp"}
+        title={c.isFaceUp ? `${c.value}${c.suit}` : `${c.value}${c.suit}`}
       >
-        {c.isFaceUp ? `${c.value}${c.suit}` : "🂠"}
+        {c.isFaceUp ? `${c.value}${c.suit}` : `${c.value}${c.suit}`}
       </span>
     ));
 
