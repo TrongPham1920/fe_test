@@ -21,7 +21,12 @@ function App() {
   );
 
   useEffect(() => {
-    setMyId(socket.id);
+    const handleConnect = () => {
+      setMyId(socket.id);
+      console.log("🔌 Socket connected, id:", socket.id);
+    };
+
+    socket.on("connect", handleConnect);
 
     socket.on("roomJoined", (id) => {
       setRoomId(id);
@@ -102,6 +107,7 @@ function App() {
     });
 
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("roomJoined");
       socket.off("playersUpdate");
       socket.off("gameStarted");
@@ -112,6 +118,10 @@ function App() {
       socket.off("gameOver");
     };
   }, [pot]);
+
+  useEffect(() => {
+    console.log("myId:", myId, "currentTurn:", currentTurn);
+  }, [myId, currentTurn]);
 
   // Hành động lật bài - chỉ lượt mình mới bấm được
   const handleFlipCard = (cardIndex) => {
