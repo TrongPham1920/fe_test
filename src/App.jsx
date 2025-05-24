@@ -1,188 +1,284 @@
 import React, { useEffect, useState } from "react";
 import socket from "./socket";
-import "./App.css";
 
 function App() {
-  const [status, setStatus] = useState("Chờ bạn bấm bắt đầu...");
+  const [status, setStatus] = useState("🎮 Nhập tên và ID phòng để kết nối...");
   const [roomId, setRoomId] = useState(null);
-
-  const [opponentMove, setOpponentMove] = useState(null);
-  const [winner, setWinner] = useState(null);
-  const [isGameStarted, setIsGameStarted] = useState(false);
+  const [players, setPlayers] = useState([]);
+  const [hands, setHands] = useState({}); // {playerId: [{value, suit, isFaceUp}]}
   const [scores, setScores] = useState({});
-  const [gameWinner, setGameWinner] = useState(null);
+  const [pot, setPot] = useState(0);
+  const [currentTurn, setCurrentTurn] = useState(null);
+  const [myId, setMyId] = useState(null);
+  const [isGameStarted, setIsGameStarted] = useState(false);
+  const [winner, setWinner] = useState(null);
 
-  const handleFindRoom = () => {
-    socket.emit("findRoom");
-  };
-
-  const handleMove = (move) => {
-    if (!roomId || !isGameStarted) return;
-    socket.emit("move", { roomId, move });
-
-    setStatus(`Bạn đã chọn: ${move}`);
-  };
+  const [playerName, setPlayerName] = useState("");
+  const [inputRoomId, setInputRoomId] = useState("");
 
   useEffect(() => {
+    setMyId(socket.id);
+
     socket.on("roomJoined", (id) => {
       setRoomId(id);
-      setStatus(`Đã vào phòng ${id}, chờ đối thủ...`);
+      setStatus(`✅ Vào phòng ${id}, chờ đủ người...`);
     });
 
-    socket.on("startGame", () => {
-      setIsGameStarted(true);
-      setStatus("🎮 Trò chơi bắt đầu!");
-
-      setOpponentMove(null);
-      setWinner(null);
+    socket.on("playersUpdate", (playerIds) => {
+      setPlayers(playerIds);
     });
 
-    socket.on("roundResult", (result) => {
-      const myId = socket.id;
-      const enemyId = Object.keys(result).find(
-        (id) => id !== myId && id !== "winner"
-      );
-
-      setOpponentMove(result[enemyId]?.move);
-      setWinner(result.winner);
-
-      setScores((prev) => ({
-        ...prev,
-        [myId]: result[myId]?.score || 0,
-        [enemyId]: result[enemyId]?.score || 0,
-      }));
-
-      let msg = `Bạn: ${result[myId]?.move} | Đối thủ: ${result[enemyId]?.move}\n`;
-      if (!result.winner) msg += "⚖️ Hòa!";
-      else if (result.winner === myId) msg += "✅ Bạn thắng vòng này!";
-      else msg += "❌ Bạn thua vòng này!";
-      setStatus(msg);
-    });
-
-    socket.on("gameOver", ({ winner, scores }) => {
-      setGameWinner(winner);
-      setScores(scores);
-
-      const msg =
-        winner === socket.id
-          ? "🏆 Bạn đã thắng cả trận!"
-          : "💀 Bạn đã thua trận!";
-      setStatus(msg);
-
-      setTimeout(() => {
-        setOpponentMove(null);
+    socket.on(
+      "gameStarted",
+      ({ pot: gamePot, hands: serverHands, currentTurnId }) => {
+        setIsGameStarted(true);
+        setPot(gamePot);
         setWinner(null);
-        setGameWinner(null);
-        setStatus("🎮 Trận mới bắt đầu!");
-      }, 4000);
+        setHands({});
+        setScores({});
+        setStatus("🎲 Đã đặt cược xong, bài đã chia úp, chờ lượt lật bài.");
+
+        const parsedHands = {};
+        Object.entries(serverHands).forEach(([pid, cards]) => {
+          parsedHands[pid] = cards.map((cardStr) => ({
+            value: cardStr.slice(0, -1),
+            suit: cardStr.slice(-1),
+            isFaceUp: false,
+          }));
+        });
+        setHands(parsedHands);
+        setCurrentTurn(currentTurnId); // currentTurn là playerId
+      }
+    );
+
+    socket.on("turnChanged", ({ playerId, playerName }) => {
+      console.log(`Lượt của ${playerName} (${playerId})`);
+      setCurrentTurn(playerId);
+      if (playerId === socket.id) {
+        setStatus("🎯 Đến lượt bạn lật bài hoặc đặt cược");
+      } else {
+        setStatus(`⌛ Chờ người chơi ${playerName} lật bài hoặc cược`);
+      }
+    });
+
+    socket.on("cardFlipped", ({ playerId, cardIndex }) => {
+      setHands((prev) => {
+        const newHands = { ...prev };
+        if (newHands[playerId] && newHands[playerId][cardIndex]) {
+          newHands[playerId][cardIndex].isFaceUp = true;
+        }
+        return newHands;
+      });
+    });
+
+    socket.on("potUpdated", (newPot) => {
+      setPot(newPot);
+    });
+
+    socket.on("gameResult", ({ winnerId, scores: finalScores }) => {
+      setScores(finalScores);
+      setWinner(winnerId);
+      setStatus(
+        winnerId === socket.id
+          ? `🏆 Bạn thắng với pot ${pot}!`
+          : `🎉 Người thắng: ${winnerId.slice(0, 5)} - pot ${pot}`
+      );
+    });
+
+    socket.on("gameOver", () => {
+      setIsGameStarted(false);
+      setHands({});
+      setPot(0);
+      setScores({});
+      setWinner(null);
+      setStatus("🎮 Ván mới - nhập tên và phòng để chơi tiếp");
+      setRoomId(null);
+      setPlayers([]);
+      setCurrentTurn(null);
     });
 
     return () => {
       socket.off("roomJoined");
-      socket.off("startGame");
-      socket.off("roundResult");
+      socket.off("playersUpdate");
+      socket.off("gameStarted");
+      socket.off("turnChanged");
+      socket.off("cardFlipped");
+      socket.off("potUpdated");
+      socket.off("gameResult");
       socket.off("gameOver");
     };
-  }, []);
+  }, [pot]);
 
-  const opponentId = Object.keys(scores).find((id) => id !== socket.id);
+  // Hành động lật bài - chỉ lượt mình mới bấm được
+  const handleFlipCard = (cardIndex) => {
+    if (currentTurn !== socket.id) return;
+    socket.emit("flipCard", { roomId, cardIndex });
+  };
+
+  // Các hành động cược: úp, theo, tố, tất tay
+  const handleAction = (action) => {
+    if (currentTurn !== socket.id) return;
+    socket.emit("playerAction", { roomId, action });
+  };
+
+  const renderCards = (cards) =>
+    cards?.map((c, i) => (
+      <span
+        key={i}
+        style={{
+          margin: "0 6px",
+          fontWeight: "bold",
+          fontSize: "24px",
+          cursor: currentTurn === myId && !c.isFaceUp ? "pointer" : "default",
+          opacity: c.isFaceUp ? 1 : 0.2,
+          borderBottom: c.isFaceUp ? "2px solid green" : "2px solid gray",
+        }}
+        onClick={() => {
+          if (!c.isFaceUp && currentTurn === myId) handleFlipCard(i);
+        }}
+        title={c.isFaceUp ? `${c.value}${c.suit}` : "Bài úp"}
+      >
+        {c.isFaceUp ? `${c.value}${c.suit}` : "🂠"}
+      </span>
+    ));
+
+  // Gửi joinRoom kèm playerName và roomId
+  const handleJoinRoom = (e) => {
+    e.preventDefault();
+    if (!playerName.trim()) {
+      alert("Vui lòng nhập tên của bạn");
+      return;
+    }
+    if (!inputRoomId.trim()) {
+      alert("Vui lòng nhập ID phòng");
+      return;
+    }
+    socket.emit("joinRoom", {
+      playerName: playerName.trim(),
+      roomId: inputRoomId.trim(),
+    });
+  };
 
   return (
-    <div
-      className="app"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100vh",
-        backgroundColor: "#f0f4f8",
-      }}
-    >
-      <div
+    <div className="app" style={{ padding: 24, maxWidth: 720, margin: "auto" }}>
+      <h2>🃏 Game Bài 3 Lá - Ba Cây - 5 người</h2>
+      <p
         style={{
-          width: "100%",
-          maxWidth: 600,
-          padding: 20,
-          borderRadius: 10,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          backgroundColor: "#fff",
-          textAlign: "center",
+          backgroundColor: "#eef",
+          padding: 12,
+          borderRadius: 8,
+          minHeight: 60,
+          fontWeight: "bold",
         }}
       >
-        <h1 style={{ marginBottom: 16 }}>🪨📄✂️ Oẳn Tù Tì Realtime</h1>
-        <p
-          style={{
-            minHeight: 40,
-            padding: "8px 12px",
-            backgroundColor: "#e7f3ff",
-            borderRadius: 6,
-            marginBottom: 24,
-            fontWeight: "500",
-          }}
-        >
-          {status}
-        </p>
+        {status}
+      </p>
 
-        {isGameStarted && scores && (
-          <div className="scoreboard" style={{ marginBottom: 24 }}>
-            <p>🧍‍♂️ Bạn: {scores[socket.id] || 0}</p>
-            <p>🧑‍🤝‍🧑 Đối thủ: {opponentId ? scores[opponentId] : 0}</p>
+      {!roomId && (
+        <form onSubmit={handleJoinRoom} style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 12 }}>
+            <label>
+              Tên của bạn:{" "}
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Nhập tên..."
+                required
+              />
+            </label>
           </div>
-        )}
-
-        {!roomId && (
-          <button className="btn-primary" onClick={handleFindRoom}>
-            🔍 Bắt đầu chơi
+          <div style={{ marginBottom: 12 }}>
+            <label>
+              ID Phòng:{" "}
+              <input
+                type="text"
+                value={inputRoomId}
+                onChange={(e) => setInputRoomId(e.target.value)}
+                placeholder="Nhập ID phòng hoặc tạo mới"
+                required
+              />
+            </label>
+          </div>
+          <button type="submit" className="btn-primary">
+            🔍 Kết nối phòng
           </button>
-        )}
+        </form>
+      )}
 
-        {isGameStarted && (
-          <div className="buttons" style={{ marginTop: 20 }}>
-            <button className="btn-move" onClick={() => handleMove("rock")}>
-              🪨 Đá
-            </button>
-            <button className="btn-move" onClick={() => handleMove("paper")}>
-              📄 Bao
-            </button>
-            <button className="btn-move" onClick={() => handleMove("scissors")}>
-              ✂️ Kéo
-            </button>
+      {roomId && !isGameStarted && (
+        <p>
+          {players.length > 0 && (
+            <p>
+              👥 Người chơi trong phòng ({players.length}):{" "}
+              {players.map((p) =>
+                p.id === myId ? (
+                  <b key={p.id}>Bạn</b>
+                ) : (
+                  <span key={p.id}>{p.name || p.id.slice(0, 5)}...</span>
+                )
+              )}
+            </p>
+          )}
+        </p>
+      )}
+
+      {isGameStarted && (
+        <>
+          <p>
+            💰 Tiền cược (pot): <b>{pot}</b>
+          </p>
+
+          <div>
+            <h4>Bài của bạn:</h4>
+            {renderCards(hands[myId])}
           </div>
-        )}
 
-        {opponentMove && (
-          <p style={{ marginTop: 24, fontWeight: "600" }}>
-            Đối thủ đã chọn: <strong>{opponentMove}</strong>
-          </p>
-        )}
+          <div style={{ marginTop: 16 }}>
+            <h4>Danh sách người chơi:</h4>
+            <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+              {players.map((p) => (
+                <li
+                  key={p.id}
+                  style={{
+                    fontWeight: p.id === myId ? "bold" : "normal",
+                    color: p.id === currentTurn ? "blue" : "black",
+                    marginBottom: 6,
+                  }}
+                >
+                  {p.id === myId ? "Bạn" : p.name || p.id.slice(0, 5) + "..."}{" "}
+                  {scores[p.id] !== undefined ? `| Điểm: ${scores[p.id]}` : ""}
+                  {p.id === currentTurn && " ← Đang chơi"}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {winner && (
-          <p
-            style={{
-              color: winner === socket.id ? "green" : "red",
-              fontWeight: "bold",
-              marginTop: 8,
-            }}
-          >
-            {winner === socket.id ? "🎉 Bạn thắng!" : "😭 Bạn thua!"}
-          </p>
-        )}
+          {currentTurn === myId && (
+            <div style={{ marginTop: 20 }}>
+              <h4>🎯 Lượt bạn:</h4>
+              <button onClick={() => handleAction("up")}>🃏 Úp bài</button>{" "}
+              <button onClick={() => handleAction("follow")}>💵 Theo</button>{" "}
+              <button onClick={() => handleAction("raise")}>⬆️ Tố</button>{" "}
+              <button onClick={() => handleAction("allin")}>💰 Tất tay</button>
+            </div>
+          )}
 
-        {gameWinner && (
-          <p
-            style={{
-              fontSize: "1.2rem",
-              fontWeight: "bold",
-              color: gameWinner === socket.id ? "green" : "red",
-              marginTop: 16,
-            }}
-          >
-            {gameWinner === socket.id
-              ? "🎉 Bạn thắng cả trận!"
-              : "😭 Bạn thua cả trận!"}
-          </p>
-        )}
-      </div>
+          {winner && (
+            <p
+              style={{
+                marginTop: 20,
+                fontWeight: "bold",
+                color: winner === myId ? "green" : "red",
+                fontSize: 20,
+              }}
+            >
+              🎉 Người thắng:{" "}
+              {winner === myId ? "Bạn" : winner.slice(0, 5) + "..."}
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 }
