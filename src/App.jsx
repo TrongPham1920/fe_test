@@ -16,6 +16,10 @@ function App() {
   const [playerName, setPlayerName] = useState("");
   const [inputRoomId, setInputRoomId] = useState("");
 
+  const firstFaceDownCardIndex = hands[myId]?.findIndex(
+    (card) => !card.isFaceUp
+  );
+
   useEffect(() => {
     setMyId(socket.id);
 
@@ -122,25 +126,52 @@ function App() {
   };
 
   const renderCards = (cards) =>
-    cards?.map((c, i) => (
-      <span
-        key={i}
-        style={{
-          margin: "0 6px",
-          fontWeight: "bold",
-          fontSize: "24px",
-          cursor: currentTurn === myId && !c.isFaceUp ? "pointer" : "default",
-          opacity: c.isFaceUp ? 1 : 0.2,
-          borderBottom: c.isFaceUp ? "2px solid green" : "2px solid gray",
-        }}
-        onClick={() => {
-          if (!c.isFaceUp && currentTurn === myId) handleFlipCard(i);
-        }}
-        title={c.isFaceUp ? `${c.value}${c.suit}` : `${c.value}${c.suit}`}
-      >
-        {c.isFaceUp ? `${c.value}${c.suit}` : `${c.value}${c.suit}`}
-      </span>
-    ));
+    cards?.map((c, i) => {
+      const isClickable = currentTurn === myId && !c.isFaceUp;
+
+      return (
+        <span
+          key={i}
+          style={{
+            margin: "0 8px",
+            fontWeight: "700",
+            fontSize: "40px",
+            cursor: isClickable ? "pointer" : "default",
+            opacity: c.isFaceUp ? 1 : 0.3,
+            borderBottom: c.isFaceUp
+              ? "3px solid #22c55e"
+              : "3px solid #9ca3af",
+            borderRadius: 4,
+            paddingBottom: 4,
+            userSelect: "none",
+            transition:
+              "opacity 0.3s ease, border-color 0.3s ease, transform 0.2s ease",
+          }}
+          onClick={() => {
+            if (isClickable) handleFlipCard(i);
+          }}
+          onMouseEnter={(e) => {
+            if (isClickable) {
+              e.currentTarget.style.opacity = "0.8";
+              e.currentTarget.style.transform = "scale(1.1)";
+              e.currentTarget.style.borderBottomColor = "#16a34a";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (isClickable) {
+              e.currentTarget.style.opacity = c.isFaceUp ? "1" : "0.3";
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.borderBottomColor = c.isFaceUp
+                ? "#22c55e"
+                : "#9ca3af";
+            }
+          }}
+          title={`${c.value}${c.suit}`}
+        >
+          {c.isFaceUp ? `${c.value}${c.suit}` : `🂠`}
+        </span>
+      );
+    });
 
   // Gửi joinRoom kèm playerName và roomId
   const handleJoinRoom = (e) => {
@@ -160,125 +191,329 @@ function App() {
   };
 
   return (
-    <div className="app" style={{ padding: 24, maxWidth: 720, margin: "auto" }}>
-      <h2>🃏 Game Bài 3 Lá - Ba Cây - 5 người</h2>
-      <p
-        style={{
-          backgroundColor: "#eef",
-          padding: 12,
-          borderRadius: 8,
-          minHeight: 60,
-          fontWeight: "bold",
-        }}
-      >
-        {status}
-      </p>
-
-      {!roomId && (
-        <form onSubmit={handleJoinRoom} style={{ marginBottom: 20 }}>
-          <div style={{ marginBottom: 12 }}>
-            <label>
-              Tên của bạn:{" "}
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Nhập tên..."
-                required
-              />
-            </label>
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <label>
-              ID Phòng:{" "}
-              <input
-                type="text"
-                value={inputRoomId}
-                onChange={(e) => setInputRoomId(e.target.value)}
-                placeholder="Nhập ID phòng hoặc tạo mới"
-                required
-              />
-            </label>
-          </div>
-          <button type="submit" className="btn-primary">
-            🔍 Kết nối phòng
-          </button>
-        </form>
-      )}
-
-      {roomId && !isGameStarted && (
-        <p>
-          {players.length > 0 && (
-            <p>
-              👥 Người chơi trong phòng ({players.length}):{" "}
-              {players.map((p) =>
-                p.id === myId ? (
-                  <b key={p.id}>Bạn</b>
-                ) : (
-                  <span key={p.id}>{p.name || p.id.slice(0, 5)}...</span>
-                )
-              )}
-            </p>
-          )}
+    <div
+      className="app"
+      style={{
+        padding: 24,
+        maxWidth: "100%",
+        height: "100vh",
+        margin: "auto",
+        display: "flex",
+        justifyContent: "center",
+        flexDirection: "column",
+        alignItems: "center",
+        backgroundImage: `url("https://a.storyblok.com/f/161938/1200x675/999110f523/guide-to-live-dealer-casinos.jpg")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div style={{ width: "40%", padding: 20, background: "#ffffffb5" }}>
+        <h2>🃏 Game Bài 3 Lá - Ba Cây - 5 người</h2>
+        <p
+          style={{
+            backgroundColor: "#eef6ff",
+            padding: "12px 16px",
+            borderRadius: 8,
+            minHeight: 60,
+            fontWeight: "700",
+            color: "#1a3e72",
+            boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+            marginBottom: 20,
+            marginTop: 20,
+            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+          }}
+        >
+          {status}
         </p>
-      )}
 
-      {isGameStarted && (
-        <>
-          <p>
-            💰 Tiền cược (pot): <b>{pot}</b>
-          </p>
-
-          <div>
-            <h4>Bài của bạn:</h4>
-            {renderCards(hands[myId])}
-          </div>
-
-          <div style={{ marginTop: 16 }}>
-            <h4>Danh sách người chơi:</h4>
-            <ul style={{ listStyle: "none", paddingLeft: 0 }}>
-              {players.map((p) => (
-                <li
-                  key={p.id}
+        {!roomId && (
+          <form
+            onSubmit={handleJoinRoom}
+            style={{
+              marginBottom: 20,
+              width: "100%",
+              backgroundColor: "#fff",
+              padding: 20,
+              borderRadius: 10,
+              boxShadow: "0 4px 10px rgba(0,0,0,0.08)",
+              fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+            }}
+          >
+            <div style={{ marginBottom: 16 }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: 8,
+                  fontWeight: 600,
+                  color: "#344055",
+                  fontSize: 14,
+                }}
+              >
+                Tên của bạn:{" "}
+                <input
+                  type="text"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  placeholder="Nhập tên..."
+                  required
                   style={{
-                    fontWeight: p.id === myId ? "bold" : "normal",
-                    color: p.id === currentTurn ? "blue" : "black",
-                    marginBottom: 6,
+                    width: "100%",
+                    padding: "10px 14px",
+                    border: "1.8px solid #a2a9b8",
+                    borderRadius: 6,
+                    fontSize: 15,
+                    outlineOffset: 2,
+                    transition: "border-color 0.3s ease",
                   }}
-                >
-                  {p.id === myId ? "Bạn" : p.name || p.id.slice(0, 5) + "..."}{" "}
-                  {scores[p.id] !== undefined ? `| Điểm: ${scores[p.id]}` : ""}
-                  {p.id === currentTurn && " ← Đang chơi"}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {currentTurn === myId && (
-            <div style={{ marginTop: 20 }}>
-              <h4>🎯 Lượt bạn:</h4>
-              <button onClick={() => handleAction("up")}>🃏 Úp bài</button>{" "}
-              <button onClick={() => handleAction("follow")}>💵 Theo</button>{" "}
-              <button onClick={() => handleAction("raise")}>⬆️ Tố</button>{" "}
-              <button onClick={() => handleAction("allin")}>💰 Tất tay</button>
+                  onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+                  onBlur={(e) => (e.target.style.borderColor = "#a2a9b8")}
+                />
+              </label>
             </div>
-          )}
+            <div style={{ marginBottom: 16 }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: 8,
+                  fontWeight: 600,
+                  color: "#344055",
+                  fontSize: 14,
+                }}
+              >
+                ID Phòng:{" "}
+                <input
+                  type="text"
+                  value={inputRoomId}
+                  onChange={(e) => setInputRoomId(e.target.value)}
+                  placeholder="Nhập ID phòng hoặc tạo mới"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    border: "1.8px solid #a2a9b8",
+                    borderRadius: 6,
+                    fontSize: 15,
+                    outlineOffset: 2,
+                    transition: "border-color 0.3s ease",
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+                  onBlur={(e) => (e.target.style.borderColor = "#a2a9b8")}
+                />
+              </label>
+            </div>
+            <button
+              type="submit"
+              style={{
+                backgroundColor: "#3b82f6",
+                color: "white",
+                fontWeight: 700,
+                padding: "12px 20px",
+                fontSize: 16,
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
+                transition: "background-color 0.25s ease",
+                width: "100%",
+              }}
+              onMouseEnter={(e) => (e.target.style.backgroundColor = "#2563eb")}
+              onMouseLeave={(e) => (e.target.style.backgroundColor = "#3b82f6")}
+            >
+              🔍 Kết nối phòng
+            </button>
+          </form>
+        )}
 
-          {winner && (
+        {roomId && !isGameStarted && (
+          <p>
+            {players.length > 0 && (
+              <p>
+                👥 Người chơi trong phòng ({players.length}):{" "}
+                {players.map((p) =>
+                  p.id === myId ? (
+                    <b key={p.id}>Bạn</b>
+                  ) : (
+                    <span key={p.id}>{p.name || p.id.slice(0, 5)}...</span>
+                  )
+                )}
+              </p>
+            )}
+          </p>
+        )}
+
+        {isGameStarted && (
+          <>
             <p
               style={{
-                marginTop: 20,
-                fontWeight: "bold",
-                color: winner === myId ? "green" : "red",
-                fontSize: 20,
+                fontSize: 18,
+                fontWeight: "700",
+                color: "#1e3a8a",
+                marginBottom: 16,
               }}
             >
-              🎉 Người thắng:{" "}
-              {winner === myId ? "Bạn" : winner.slice(0, 5) + "..."}
+              💰 Tiền cược (pot):{" "}
+              <span style={{ color: "#22c55e" }}>{pot}</span>
             </p>
-          )}
-        </>
-      )}
+
+            <div style={{ marginBottom: 20 }}>
+              <h4
+                style={{
+                  marginBottom: 12,
+                  color: "#334155",
+                  borderBottom: "2px solid #3b82f6",
+                  paddingBottom: 6,
+                }}
+              >
+                Bài của bạn:
+              </h4>
+              <div>{renderCards(hands[myId])}</div>
+              {currentTurn === myId && firstFaceDownCardIndex !== -1 && (
+                <button
+                  style={{
+                    marginTop: 16,
+                    padding: "12px 24px",
+                    fontSize: 16,
+                    fontWeight: "700",
+                    backgroundColor: "#22c55e",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 10px rgba(34, 197, 94, 0.4)",
+                    transition: "background-color 0.3s ease",
+                    userSelect: "none",
+                  }}
+                  onClick={() => handleFlipCard(firstFaceDownCardIndex)}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#16a34a")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#22c55e")
+                  }
+                >
+                  🔄 Lật bài
+                </button>
+              )}
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <h4
+                style={{
+                  marginBottom: 12,
+                  color: "#334155",
+                  borderBottom: "2px solid #2563eb",
+                  paddingBottom: 6,
+                }}
+              >
+                Danh sách người chơi:
+              </h4>
+              <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+                {players.map((p) => (
+                  <li
+                    key={p.id}
+                    style={{
+                      fontWeight: p.id === myId ? "700" : "500",
+                      color: p.id === currentTurn ? "#2563eb" : "#475569",
+                      marginBottom: 8,
+                      userSelect: "none",
+                    }}
+                  >
+                    {p.id === myId ? "Bạn" : p.name || p.id.slice(0, 5) + "..."}{" "}
+                    {scores[p.id] !== undefined
+                      ? `| Điểm: ${scores[p.id]}`
+                      : ""}
+                    {p.id === currentTurn && (
+                      <span
+                        style={{
+                          fontWeight: "700",
+                          color: "#ef4444",
+                          marginLeft: 8,
+                        }}
+                      >
+                        ← Đang chơi
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {currentTurn === myId && (
+              <div style={{ marginBottom: 12 }}>
+                <h4
+                  style={{
+                    marginBottom: 12,
+                    color: "#1e40af",
+                    fontWeight: "700",
+                  }}
+                >
+                  🎯 Lượt bạn:
+                </h4>
+                {["up", "follow", "raise", "allin"].map((action, i) => {
+                  const labels = {
+                    up: "🃏 Úp bài",
+                    follow: "💵 Theo",
+                    raise: "⬆️ Tố",
+                    allin: "💰 Tất tay",
+                  };
+                  const colors = {
+                    up: "#3b82f6",
+                    follow: "#2563eb",
+                    raise: "#ea580c",
+                    allin: "#dc2626",
+                  };
+                  return (
+                    <button
+                      key={action}
+                      onClick={() => handleAction(action)}
+                      style={{
+                        marginRight: i < 3 ? 12 : 0,
+                        padding: "10px 18px",
+                        fontSize: 15,
+                        fontWeight: "700",
+                        backgroundColor: colors[action],
+                        color: "white",
+                        border: "none",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        boxShadow: `0 3px 8px ${colors[action]}99`,
+                        transition: "background-color 0.3s ease",
+                        userSelect: "none",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = "#1e40af")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = colors[action])
+                      }
+                    >
+                      {labels[action]}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {winner && (
+              <p
+                style={{
+                  marginTop: 24,
+                  fontWeight: "bold",
+                  color: winner === myId ? "#22c55e" : "#dc2626",
+                  fontSize: 22,
+                  textAlign: "center",
+                  userSelect: "none",
+                }}
+              >
+                🎉 Người thắng:{" "}
+                {winner === myId
+                  ? "Bạn"
+                  : players.find((p) => p.id === winner)?.name ||
+                    winner.slice(0, 5) + "..."}
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
